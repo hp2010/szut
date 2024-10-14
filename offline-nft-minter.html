@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Minting</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers.js@5.5.2/dist/ethers.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+       .error {
+            color: red;
+            margin-top: 10px;
+        }
+       .loading {
+            color: blue;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>NFT Minting</h1>
+    <div id="walletInfo">
+        <button id="connectWallet">Connect Wallet</button>
+    </div>
+    <div id="mintingInfo" style="display:none;">
+        <p>Connected Account: <span id="accountAddress"></span></p>
+        <p>NFT Balance: <span id="nftBalance">Loading...</span></p>
+        <button id="mintNFT">Mint NFT</button>
+        <div id="mintingStatus" class="loading"></div>
+    </div>
+    <div id="error" class="error"></div>
+
+    <script>
+        // Configuration
+        const NFT_CONTRACT_ADDRESS = process.env.NFT_CONTRACT_ADDRESS;
+        const NFT_CONTRACT_ABI = process.env.NFT_CONTRACT_ABI;
+        const GAS_PRICE = process.env.GAS_PRICE;
+
+        // Initialize Web3 and Ethers
+        let web3;
+        let ethers;
+        let contract;
+        let userAccount;
+
+        // DOM elements
+        const connectWalletBtn = document.getElementById('connectWallet');
+        const mintNFTBtn = document.getElementById('mintNFT');
+        const walletInfoDiv = document.getElementById('walletInfo');
+        const mintingInfoDiv = document.getElementById('mintingInfo');
+        const accountAddressSpan = document.getElementById('accountAddress');
+        const nftBalanceSpan = document.getElementById('nftBalance');
+        const mintingStatusDiv = document.getElementById('mintingStatus');
+        const errorDiv = document.getElementById('error');
+
+        // Connect to wallet
+	async function connectWallet() {
+	  try {
+	    if (window.ethereum) {
+	      console.log('Window ethereum object available');
+ 	     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+ 	     console.log('Accounts:', accounts);
+ 	     //...
+ 	   } else {
+ 	     console.error('No Ethereum wallet found. Please install MetaMask.');
+ 	     showError('No Ethereum wallet found. Please install MetaMask.');
+ 	   }
+ 	 } catch (error) {
+ 	   console.error('Error connecting to wallet:', error);
+ 	   showError('Error connecting to wallet:'+ error.message);
+	  }
+	}
+
+        // Mint NFT
+        async function mintNFT() {
+            try {
+                mintingStatusDiv.textContent = 'Minting...';
+                mintingStatusDiv.classList.add('loading');
+                const tx = await contract.mintNFT({
+                    from: userAccount,
+                    value: ethers.utils.parseEther('0.1'),
+                    gasPrice: GAS_PRICE,
+                });
+                await tx.wait();
+                updateNFTBalance();
+                mintingStatusDiv.textContent = 'Minted!';
+                mintingStatusDiv.classList.remove('loading');
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        // Update NFT balance
+        async function updateNFTBalance() {
+            try {
+                const balance = await contract.balanceOf(userAccount);
+                nftBalanceSpan.textContent = balance.toString();
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Event listeners
+        connectWalletBtn.addEventListener('click', connectWallet);
+        mintNFTBtn.addEventListener('click', mintNFT);
+
+        // Check if wallet is already connected
+        if (window.ethereum) {
+            window.ethereum.request({ method: 'eth_accounts' })
+               .then(accounts => {
+                    if (accounts.length > 0) {
+                        connectWallet();
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
